@@ -6,10 +6,6 @@ from bottle import get, default_app, request, abort, response
 EXPIRE = 60
 
 
-def valid(url):
-    return url
-
-
 def invalid():
     response.status = 400
     return 'URL is down'
@@ -38,15 +34,15 @@ def index():
         if cache == 'd':
             return invalid()
         if cache == 'u':
-            return valid(url)
+            return url
 
         try:
-            urllib2.urlopen(url, timeout=100)
+            urllib2.urlopen(url, timeout=10)
         except:
             uwsgi.cache_set(cache_key, 'd', EXPIRE)
             return invalid()
         else:
             uwsgi.cache_set(cache_key, 'u', EXPIRE)
-            return valid(url)
+            return url
 
 application = default_app()
