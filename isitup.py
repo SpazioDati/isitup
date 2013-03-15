@@ -8,6 +8,7 @@ import uwsgi
 from bottle import get, default_app, request, abort, response, route
 
 EXPIRE = 60
+USERAGENT = "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)"
 
 
 def invalid():
@@ -41,8 +42,12 @@ def index():
             return url
 
         try:
-            urllib2.urlopen(url, timeout=10)
-        except:
+            req = urllib2.Request(
+                url,
+                headers={'User-Agent': USERAGENT}
+            )
+            urllib2.urlopen(req, timeout=10)
+        except Exception, e:
             uwsgi.cache_set(cache_key, 'd', EXPIRE)
             return invalid()
         else:
