@@ -2,6 +2,8 @@ import json
 import urllib
 import urllib2
 from contextlib import contextmanager
+from functools import partial
+from multiprocessing.dummy import Pool
 import uwsgi
 from bottle import get, default_app, request, abort, response, route
 
@@ -55,7 +57,7 @@ METADATA = {
 }
 
 
-def search(query):
+def search(host, query):
     # Example match format:
     """
     match = {
@@ -68,7 +70,6 @@ def search(query):
         }
     matches.append(match)
     """
-    host = request.headers['Host']
     url = 'http://{}/?{}'.format(host, urllib.urlencode(
         {'url': query.encode('utf8')})
     )
@@ -76,7 +77,6 @@ def search(query):
     try:
         urllib2.urlopen(url)
     except Exception, e:
-        print e
         return []
     else:
         return [{
@@ -109,6 +109,8 @@ def jsonpify(obj):
 
 @route('/reconcile', method=['GET', 'POST'])
 def reconcile():
+    host = request.headers['Host']
+
     # If a single 'query' is provided do a straightforward search.
     query = request.params.get('query')
     if query:
@@ -117,7 +119,7 @@ def reconcile():
         # the 'query' param is the search string itself.
         if query.startswith("{"):
             query = json.loads(query)['query']
-        results = search(query)
+        results = search(host, query)
         return jsonpify({"result": results})
 
     # If a 'queries' parameter is supplied then it is a dictionary
@@ -126,10 +128,16 @@ def reconcile():
     queries = request.params.get('queries')
     if queries:
         queries = json.loads(queries)
-        results = {}
-        for (key, query) in queries.items():
-            results[key] = {"result": search(query['query'])}
-        print results
+
+        def f(host, t):
+            key, query = t
+            return key, {"result": search(host, query['query'])}
+
+        pool = Pool(10)
+
+        f = partial(f, host)
+
+        results = dict(pool.map(f, queries.items()))
         return jsonpify(results)
 
     # If neither a 'query' nor 'queries' parameter is supplied then
