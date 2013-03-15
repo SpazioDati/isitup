@@ -84,10 +84,10 @@ def search(query):
             'name': query,
             'match': True,
             'score': 100,
-            'type': {
+            'type': [{
                 'id': '/',
                 'name': 'Basic service',
-            }
+            }]
         }]
 
 
