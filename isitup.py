@@ -50,7 +50,7 @@ def index():
 
 #### reconciliation
 METADATA = {
-    "name": "Local Reconciliation Service",
+    "name": "IsItUp? Reconciliation Service",
     "defaultTypes": [],
 }
 
@@ -69,7 +69,9 @@ def search(query):
     matches.append(match)
     """
     host = request.headers['Host']
-    url = 'http://{}/?{}'.format(host, urllib.urlencode({'url': query}))
+    url = 'http://{}/?{}'.format(host, urllib.urlencode(
+        {'url': query.encode('utf8')})
+    )
 
     try:
         urllib2.urlopen(url)
@@ -82,6 +84,10 @@ def search(query):
             'name': query,
             'match': True,
             'score': 100,
+            'type': {
+                'id': '/',
+                'name': 'Basic service',
+            }
         }]
 
 
@@ -101,7 +107,7 @@ def jsonpify(obj):
     return content
 
 
-@route('/reconcile')
+@route('/reconcile', method=['GET', 'POST'])
 def reconcile():
     # If a single 'query' is provided do a straightforward search.
     query = request.params.get('query')
