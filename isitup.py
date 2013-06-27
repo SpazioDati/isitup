@@ -4,11 +4,18 @@ import urllib2
 from contextlib import contextmanager
 from functools import partial
 from multiprocessing.dummy import Pool
+
 import uwsgi
 from bottle import get, default_app, request, abort, response, route
 
 EXPIRE = 60
 USERAGENT = "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)"
+
+try:
+    LOCKS = int(uwsgi.opt['locks'])
+except:
+    print '"uwsgi --locks N" is mandatory'
+    exit(1)
 
 
 def invalid():
@@ -33,7 +40,7 @@ def index():
     url_hash = hash(url)
     cache_key = str(url_hash)
 
-    lock_idx = url_hash % 24
+    lock_idx = url_hash % LOCKS
     with lock(lock_idx):
         cache = uwsgi.cache_get(cache_key)
         if cache == 'd':
@@ -47,7 +54,7 @@ def index():
                 headers={'User-Agent': USERAGENT}
             )
             urllib2.urlopen(req, timeout=10)
-        except Exception, e:
+        except:
             uwsgi.cache_set(cache_key, 'd', EXPIRE)
             return invalid()
         else:
