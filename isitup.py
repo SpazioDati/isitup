@@ -1,7 +1,6 @@
 import json
 import urllib
 import urllib2
-from contextlib import contextmanager
 from functools import partial
 from multiprocessing.dummy import Pool
 
@@ -24,8 +23,9 @@ def invalid():
 
 
 class lock(object):
-    def __init__(self, lock_id):
-        self.lock_id = lock_id
+
+    def __init__(self, lock_idx):
+        self.lock_idx = lock_idx
 
     def __enter__(self, *args):
         uwsgi.lock(self.lock_idx)
@@ -40,6 +40,7 @@ def index():
         url = request.params['url']
     except KeyError:
         abort(400, 'Please provide a url')
+        return  # only for pylint
 
     url_hash = hash(url)
     cache_key = str(url_hash)
@@ -66,7 +67,7 @@ def index():
             return url
 
 
-#### reconciliation
+# reconciliation
 METADATA = {
     "name": "IsItUp? Reconciliation Service",
     "defaultTypes": [],
@@ -104,7 +105,7 @@ def search(host, query):
             'type': [{
                 'id': '/',
                 'name': 'Basic service',
-            }]
+                }]
         }]
 
 
