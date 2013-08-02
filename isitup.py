@@ -23,11 +23,15 @@ def invalid():
     return 'URL is down'
 
 
-@contextmanager
-def lock(lock_idx):
-    uwsgi.lock(lock_idx)
-    yield
-    uwsgi.unlock(lock_idx)
+class lock(object):
+    def __init__(self, lock_id):
+        self.lock_id = lock_id
+
+    def __enter__(self, *args):
+        uwsgi.lock(self.lock_idx)
+
+    def __exit__(self, *args):
+        uwsgi.unlock(self.lock_idx)
 
 
 @get('/')
@@ -82,6 +86,7 @@ def search(host, query):
         }
     matches.append(match)
     """
+    # print 'SEARCH ON {} USING QUERY {}'.format(host, query)
     url = 'http://{}/?{}'.format(host, urllib.urlencode(
         {'url': query.encode('utf8')})
     )
@@ -138,6 +143,7 @@ def reconcile():
     # of (key, query) pairs representing a batch of queries. We
     # should return a dictionary of (key, results) pairs.
     queries = request.params.get('queries')
+    # print queries
     if queries:
         queries = json.loads(queries)
 
